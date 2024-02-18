@@ -1,0 +1,8 @@
+SpeechRecognition
+openai-whisper
+pyautogui
+sounddevice
+pyaudio
+comtypes
+pyautogui
+opencv-python
