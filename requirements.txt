@@ -6,3 +6,6 @@ pyaudio
 comtypes
 pyautogui
 opencv-python
+transformers
+sentencepiece
+sacremoses

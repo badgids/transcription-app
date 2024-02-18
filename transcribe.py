@@ -1,30 +1,43 @@
 import argparse
+import json
 import numpy as np
+import os
 import speech_recognition as sr
 import whisper
 import torch
 import pyautogui
 import tkinter as tk
 from tkinter import ttk
+from tkinter import filedialog
 from datetime import datetime, timedelta
 from queue import Queue
 from threading import Thread
 from time import sleep
-import sys
+from transformers import MarianMTModel, MarianTokenizer
 
+class Translator:
+    def __init__(self, source_lang: str, dest_lang: str) -> None:
+        self.model_name = f'Helsinki-NLP/opus-mt-{source_lang}-{dest_lang}'
+        self.model = MarianMTModel.from_pretrained(self.model_name)
+        self.tokenizer = MarianTokenizer.from_pretrained(self.model_name)
+
+    def translate(self, texts):
+        tokens = self.tokenizer(list(texts), return_tensors="pt", padding=True)
+        translate_tokens = self.model.generate(**tokens)
+        return [self.tokenizer.decode(t, skip_special_tokens=True) for t in translate_tokens]
 
 class TranscriptionApp:
     def __init__(self, master):
         self.master = master
         self.master.title("Whisper Transcription App")
-        self.master.geometry("350x175")  # Set initial window size
+        self.master.geometry("400x275")  # Set initial window size
         self.master.protocol("WM_DELETE_WINDOW", self.on_close)  # Bind close event to on_close method
 
         # Center window on screen
         screen_width = self.master.winfo_screenwidth()
         screen_height = self.master.winfo_screenheight()
-        x = (screen_width - 300) // 2
-        y = (screen_height - 175) // 2
+        x = (screen_width - 400) // 2
+        y = (screen_height - 275) // 2
         self.master.geometry("+{}+{}".format(x, y))
 
         # Create a frame for flexible resizing
@@ -33,10 +46,13 @@ class TranscriptionApp:
 
         self.create_microphone_selection(main_frame)
         self.create_model_selection(main_frame)
+        self.create_translation_options(main_frame)
 
         self.transcription_in_progress = False
         self.transcription_thread = None  # Initialize transcription thread variable
         self.stop_transcription_flag = False  # Flag to signal transcription thread to stop
+        self.translation_active = False  # Flag to indicate if translation is active
+        self.translator = None  # Initialize translator object
 
         self.loading_label = tk.Label(main_frame, text="", font=("Arial", 12, "bold"), fg="black")
         self.loading_label.pack(pady=10)
@@ -72,6 +88,38 @@ class TranscriptionApp:
         self.model_dropdown = ttk.Combobox(model_frame, textvariable=self.model_var, values=model_options, state="readonly")
         self.model_dropdown.current(3)  # Set default value to "medium"
         self.model_dropdown.grid(row=0, column=1)
+
+    def create_translation_options(self, frame):
+        translation_frame = tk.Frame(frame)
+        translation_frame.pack(pady=10)
+
+        self.translation_checkbox_var = tk.BooleanVar()
+        self.translation_checkbox = tk.Checkbutton(translation_frame, text="Translate to Language:", variable=self.translation_checkbox_var, command=self.toggle_translation)
+        self.translation_checkbox.grid(row=0, column=0, padx=10, pady=5, sticky="w")
+
+        self.translate_label = tk.Label(translation_frame, text="Translate to Language:")
+        self.translate_label.grid(row=1, column=0, padx=10, pady=5, sticky="w")
+        self.translate_label.grid_remove()
+
+        self.translate_var = tk.StringVar()
+        self.translate_dropdown = ttk.Combobox(translation_frame, textvariable=self.translate_var, state="disabled")
+        self.translate_dropdown.grid(row=1, column=1, padx=10, pady=5, sticky="w")
+        self.translate_dropdown.grid_remove()
+
+    def toggle_translation(self):
+        self.translation_active = self.translation_checkbox_var.get()
+        if self.translation_active:
+            self.translate_label.grid()
+            self.translate_dropdown.grid()
+            languages = ['es', 'fr', 'de']
+            self.translate_dropdown.config(values=languages, state="readonly")
+            self.translate_var.set('es')  # Set default translation language to Spanish
+        else:
+            self.translate_label.grid_remove()
+            self.translate_dropdown.grid_remove()
+
+    def load_translator_model(self, source_lang, dest_lang):
+        self.translator = Translator(source_lang, dest_lang)
 
     def toggle_transcription(self):
         if not self.transcription_in_progress:
@@ -171,6 +219,12 @@ class TranscriptionApp:
                     result = audio_model.transcribe(audio_np, fp16=torch.cuda.is_available())
                     text = result['text'].strip()
 
+                    # If translation is active, translate the text
+                    if self.translation_active:
+                        translation_lang = self.translate_var.get()
+                        self.load_translator_model('en', translation_lang)
+                        text = self.translator.translate([text])[0]
+
                     # If we detected a pause between recordings, add a new item to our transcription.
                     # Otherwise, append the new transcription.
                     if phrase_complete:
@@ -204,12 +258,10 @@ class TranscriptionApp:
         self.stop_transcription_flag = True  # Set stop transcription flag
         self.master.destroy()  # Destroy tkinter window
 
-
 def main():
     root = tk.Tk()
     app = TranscriptionApp(root)
     root.mainloop()
-
 
 if __name__ == "__main__":
     main()
