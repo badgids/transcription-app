@@ -91,10 +91,13 @@ class TranscriptionApp:
         model_label.grid(row=0, column=0, padx=10)
 
         self.model_var = ctk.StringVar()
-        model_options = ["tiny", "base", "small", "medium", "large"]
+        model_options = ['Tiny', 'Base', 'Small', 'Medium', 'Large']
         self.model_dropdown = ctk.CTkComboBox(model_frame, variable=self.model_var, values=model_options, state="readonly")
         self.model_dropdown.set(model_options[3])  # Set default value to "medium"
         self.model_dropdown.grid(row=0, column=1)
+
+    def dothis(choice):
+        print(f'You selected: {choice}')
 
     def create_translation_options(self, frame):
         translation_frame = ctk.CTkFrame(frame)
@@ -107,7 +110,7 @@ class TranscriptionApp:
         self.translate_label = ctk.CTkLabel(translation_frame, text="Translate to Language:")
         self.translate_label.grid(row=1, column=0, padx=10, pady=5, sticky="w")
         self.translate_label.grid_remove()
-
+        self.languages = {"Spanish": "es", "French": "fr", "German": "de"}
         self.translate_var = ctk.StringVar()
         self.translate_dropdown = ctk.CTkComboBox(translation_frame, variable=self.translate_var, state="disabled")
         self.translate_dropdown.grid(row=1, column=1, padx=10, pady=5, sticky="w")
@@ -118,9 +121,8 @@ class TranscriptionApp:
         if self.translation_active:
             self.translate_label.grid()
             self.translate_dropdown.grid()
-            languages = ['es', 'fr', 'de']
-            self.translate_dropdown.configure(values=languages, state="readonly")
-            self.translate_var.set('es')  # Set default translation language to Spanish
+            self.translate_dropdown.configure(values=list(self.languages.keys()), state="readonly")
+            self.translate_var.set(list(self.languages.keys())[0])  # Set default translation language to Spanish
         else:
             self.translate_label.grid_remove()
             self.translate_dropdown.grid_remove()
@@ -153,7 +155,7 @@ class TranscriptionApp:
             self.pin_button.configure(image=self.pinned_icon)
 
     def start_transcription(self):
-        model = self.model_var.get()
+        model = self.model_var.get().lower()
         mic_index = sr.Microphone.list_microphone_names().index(self.mic_var.get())
         selected_mic_name = sr.Microphone.list_microphone_names()[mic_index]
 
@@ -230,7 +232,7 @@ class TranscriptionApp:
 
                     # If translation is active, translate the text
                     if self.translation_active:
-                        translation_lang = self.translate_var.get()
+                        translation_lang = self.languages[self.translate_var.get()]
                         self.load_translator_model('en', translation_lang)
                         text = self.translator.translate([text])[0]
 
