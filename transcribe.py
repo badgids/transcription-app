@@ -36,8 +36,10 @@ class TranscriptionApp:
         self.master.geometry("400x275")  # Set initial window size
         self.master.protocol("WM_DELETE_WINDOW", self.on_close)  # Bind close event to on_close method
 
+        # Define icons for pin button
         self.unpinned_icon = ctk.CTkImage(Image.open('assets/images/unpinned.png'), size=(24,24))
         self.pinned_icon = ctk.CTkImage(Image.open('assets/images/pinned.png'), size=(24,24))
+        
         # Center window on screen
         screen_width = self.master.winfo_screenwidth()
         screen_height = self.master.winfo_screenheight()
@@ -59,10 +61,10 @@ class TranscriptionApp:
         self.translation_active = False  # Flag to indicate if translation is active
         self.translator = None  # Initialize translator object
 
-        self.loading_label = ctk.CTkLabel(main_frame, text="", font=("Arial", 12, "bold"), fg_color="black")
+        self.loading_label = ctk.CTkLabel(main_frame, text="", font=("Arial", 12, "bold"), fg_color="transparent")
         self.loading_label.pack(pady=10)
 
-        self.pin_button = ctk.CTkButton(self.master, text='', image=self.unpinned_icon, command=self.toggle_pin, width=20)
+        self.pin_button = ctk.CTkButton(self.master, text='', image=self.unpinned_icon, command=self.toggle_pin, width=20, corner_radius=0, bg_color="transparent", fg_color="transparent")
         self.pin_button.place(relx=1, rely=0, anchor="ne")
 
         self.start_button = ctk.CTkButton(main_frame, text="Start Transcription", command=self.toggle_transcription)
