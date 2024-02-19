@@ -6,6 +6,7 @@ import speech_recognition as sr
 import whisper
 import torch
 import pyautogui
+import customtkinter as ctk
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
@@ -30,6 +31,7 @@ class TranscriptionApp:
     def __init__(self, master):
         self.master = master
         self.master.title("Whisper Transcription App")
+        self.master.iconbitmap('assets/images/appIcon.ico')
         self.master.geometry("400x275")  # Set initial window size
         self.master.protocol("WM_DELETE_WINDOW", self.on_close)  # Bind close event to on_close method
 
@@ -41,7 +43,7 @@ class TranscriptionApp:
         self.master.geometry("+{}+{}".format(x, y))
 
         # Create a frame for flexible resizing
-        main_frame = tk.Frame(self.master)
+        main_frame = ctk.CTkFrame(self.master)
         main_frame.pack(fill="both", expand=True)
 
         self.create_microphone_selection(main_frame)
@@ -54,55 +56,55 @@ class TranscriptionApp:
         self.translation_active = False  # Flag to indicate if translation is active
         self.translator = None  # Initialize translator object
 
-        self.loading_label = tk.Label(main_frame, text="", font=("Arial", 12, "bold"), fg="black")
+        self.loading_label = ctk.CTkLabel(main_frame, text="", font=("Arial", 12, "bold"), fg_color="black")
         self.loading_label.pack(pady=10)
 
-        self.pin_button = tk.Button(self.master, text="📌", command=self.toggle_pin)
+        self.pin_button = ctk.CTkButton(self.master, text="📌", command=self.toggle_pin, width=20)
         self.pin_button.place(relx=1, rely=0, anchor="ne")
 
-        self.start_button = tk.Button(main_frame, text="Start Transcription", command=self.toggle_transcription)
+        self.start_button = ctk.CTkButton(main_frame, text="Start Transcription", command=self.toggle_transcription)
         self.start_button.pack(pady=10)
 
     def create_microphone_selection(self, frame):
-        mic_frame = tk.Frame(frame)
+        mic_frame = ctk.CTkFrame(frame)
         mic_frame.pack(pady=10)
 
-        mic_label = tk.Label(mic_frame, text="Select Microphone:")
+        mic_label = ctk.CTkLabel(mic_frame, text="Select Microphone:")
         mic_label.grid(row=0, column=0, padx=10)
 
-        self.mic_var = tk.StringVar()
+        self.mic_var = ctk.StringVar()
         mic_options = sr.Microphone.list_microphone_names()
-        self.mic_dropdown = ttk.Combobox(mic_frame, textvariable=self.mic_var, values=mic_options, state="readonly")
-        self.mic_dropdown.current(0)  # Set default value
+        self.mic_dropdown = ctk.CTkComboBox(mic_frame, variable=self.mic_var, values=mic_options, state="readonly")
+        self.mic_dropdown.set(mic_options[0])  # Set default value mic selection
         self.mic_dropdown.grid(row=0, column=1)
 
     def create_model_selection(self, frame):
-        model_frame = tk.Frame(frame)
+        model_frame = ctk.CTkFrame(frame)
         model_frame.pack(pady=10)
 
-        model_label = tk.Label(model_frame, text="Select Model:")
+        model_label = ctk.CTkLabel(model_frame, text="Select Model:")
         model_label.grid(row=0, column=0, padx=10)
 
-        self.model_var = tk.StringVar()
+        self.model_var = ctk.StringVar()
         model_options = ["tiny", "base", "small", "medium", "large"]
-        self.model_dropdown = ttk.Combobox(model_frame, textvariable=self.model_var, values=model_options, state="readonly")
-        self.model_dropdown.current(3)  # Set default value to "medium"
+        self.model_dropdown = ctk.CTkComboBox(model_frame, variable=self.model_var, values=model_options, state="readonly")
+        self.model_dropdown.set(model_options[3])  # Set default value to "medium"
         self.model_dropdown.grid(row=0, column=1)
 
     def create_translation_options(self, frame):
-        translation_frame = tk.Frame(frame)
+        translation_frame = ctk.CTkFrame(frame)
         translation_frame.pack(pady=10)
 
-        self.translation_checkbox_var = tk.BooleanVar()
-        self.translation_checkbox = tk.Checkbutton(translation_frame, text="Translate to Language:", variable=self.translation_checkbox_var, command=self.toggle_translation)
+        self.translation_checkbox_var = ctk.BooleanVar()
+        self.translation_checkbox = ctk.CTkCheckBox(translation_frame, text="Translate to Language:", variable=self.translation_checkbox_var, command=self.toggle_translation)
         self.translation_checkbox.grid(row=0, column=0, padx=10, pady=5, sticky="w")
 
-        self.translate_label = tk.Label(translation_frame, text="Translate to Language:")
+        self.translate_label = ctk.CTkLabel(translation_frame, text="Translate to Language:")
         self.translate_label.grid(row=1, column=0, padx=10, pady=5, sticky="w")
         self.translate_label.grid_remove()
 
-        self.translate_var = tk.StringVar()
-        self.translate_dropdown = ttk.Combobox(translation_frame, textvariable=self.translate_var, state="disabled")
+        self.translate_var = ctk.StringVar()
+        self.translate_dropdown = ctk.CTkComboBox(translation_frame, variable=self.translate_var, state="disabled")
         self.translate_dropdown.grid(row=1, column=1, padx=10, pady=5, sticky="w")
         self.translate_dropdown.grid_remove()
 
@@ -112,7 +114,7 @@ class TranscriptionApp:
             self.translate_label.grid()
             self.translate_dropdown.grid()
             languages = ['es', 'fr', 'de']
-            self.translate_dropdown.config(values=languages, state="readonly")
+            self.translate_dropdown.configure(values=languages, state="readonly")
             self.translate_var.set('es')  # Set default translation language to Spanish
         else:
             self.translate_label.grid_remove()
@@ -123,25 +125,27 @@ class TranscriptionApp:
 
     def toggle_transcription(self):
         if not self.transcription_in_progress:
-            self.start_button.config(text="Stop Transcription")
+            self.master.iconbitmap('assets/images/appIcon_recording.ico') #set app icon to show recording emblem
+            self.start_button.configure(text="Stop Transcription")
             self.transcription_in_progress = True
             self.stop_transcription_flag = False  # Reset stop transcription flag
-            self.loading_label.config(text="Loading Model...", fg="black")
+            self.loading_label.configure(text="Loading Model...", fg_color="black", corner_radius=5)
             self.transcription_thread = Thread(target=self.start_transcription)
             self.transcription_thread.start()  # Start transcription thread
         else:
-            self.start_button.config(text="Start Transcription")
+            self.master.iconbitmap('assets/images/appIcon.ico') #set app icon to remove recording emblem
+            self.start_button.configure(text="Start Transcription")
             self.transcription_in_progress = False
             self.stop_transcription_flag = True  # Set stop transcription flag
-            self.loading_label.config(text="Transcribing Stopped", fg="red")
+            self.loading_label.configure(text="Transcribing Stopped", fg_color="red", corner_radius=5)
 
     def toggle_pin(self):
         if self.master.attributes('-topmost'):
             self.master.attributes('-topmost', False)
-            self.pin_button.config(text="📌")
+            self.pin_button.configure(text="📌")
         else:
             self.master.attributes('-topmost', True)
-            self.pin_button.config(text="🔴")
+            self.pin_button.configure(text="🔴")
 
     def start_transcription(self):
         model = self.model_var.get()
@@ -173,7 +177,7 @@ class TranscriptionApp:
         print("Model loaded.\n")
 
         # Update the loading label to show "Transcribing"
-        self.loading_label.config(text="Transcribing", fg="green")
+        self.loading_label.configure(text="Transcribing", fg_color="green", corner_radius=5)
 
         with source:
             recorder.adjust_for_ambient_noise(source)
@@ -251,7 +255,7 @@ class TranscriptionApp:
         for line in transcription:
             print(line)
 
-        self.start_button.config(text="Start Transcription")  # Reset button text
+        self.start_button.configure(text="Start Transcription")  # Reset button text
         self.transcription_in_progress = False
 
     def on_close(self):
@@ -259,7 +263,10 @@ class TranscriptionApp:
         self.master.destroy()  # Destroy tkinter window
 
 def main():
-    root = tk.Tk()
+    ctk.set_appearance_mode("System")  # Modes: system (default), light, dark
+    ctk.set_default_color_theme("dark-blue")  # Themes: blue (default), dark-blue, green
+
+    root = ctk.CTk()
     app = TranscriptionApp(root)
     root.mainloop()
 
