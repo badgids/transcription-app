@@ -96,9 +96,6 @@ class TranscriptionApp:
         self.model_dropdown.set(model_options[3])  # Set default value to "medium"
         self.model_dropdown.grid(row=0, column=1)
 
-    def dothis(choice):
-        print(f'You selected: {choice}')
-
     def create_translation_options(self, frame):
         translation_frame = ctk.CTkFrame(frame)
         translation_frame.pack(pady=10)
@@ -110,7 +107,13 @@ class TranscriptionApp:
         self.translate_label = ctk.CTkLabel(translation_frame, text="Translate to Language:")
         self.translate_label.grid(row=1, column=0, padx=10, pady=5, sticky="w")
         self.translate_label.grid_remove()
-        self.languages = {"Spanish": "es", "French": "fr", "German": "de"}
+        self.languages = {
+            "Spanish": "es",
+            "French": "fr",
+            "German": "de",
+            "Dutch": "nl",
+            "Japanese": "jap"
+            }
         self.translate_var = ctk.StringVar()
         self.translate_dropdown = ctk.CTkComboBox(translation_frame, variable=self.translate_var, state="disabled")
         self.translate_dropdown.grid(row=1, column=1, padx=10, pady=5, sticky="w")
