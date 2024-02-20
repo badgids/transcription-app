@@ -16,6 +16,8 @@ from threading import Thread
 from time import sleep
 from transformers import MarianMTModel, MarianTokenizer
 from PIL import Image
+from faster_whisper import WhisperModel
+
 
 class Translator:
     def __init__(self, source_lang: str, dest_lang: str) -> None:
@@ -28,18 +30,22 @@ class Translator:
         translate_tokens = self.model.generate(**tokens)
         return [self.tokenizer.decode(t, skip_special_tokens=True) for t in translate_tokens]
 
+
 class TranscriptionApp:
     def __init__(self, master):
         self.master = master
         self.master.title("Whisper Transcription App")
         self.master.iconbitmap('assets/images/appIcon.ico')
         self.master.geometry("400x275")  # Set initial window size
-        self.master.protocol("WM_DELETE_WINDOW", self.on_close)  # Bind close event to on_close method
+        # Bind close event to on_close method
+        self.master.protocol("WM_DELETE_WINDOW", self.on_close)
 
         # Define icons for pin button
-        self.unpinned_icon = ctk.CTkImage(Image.open('assets/images/unpinned.png'), size=(24,24))
-        self.pinned_icon = ctk.CTkImage(Image.open('assets/images/pinned.png'), size=(24,24))
-        
+        self.unpinned_icon = ctk.CTkImage(Image.open(
+            'assets/images/unpinned.png'), size=(24, 24))
+        self.pinned_icon = ctk.CTkImage(Image.open(
+            'assets/images/pinned.png'), size=(24, 24))
+
         # Center window on screen
         screen_width = self.master.winfo_screenwidth()
         screen_height = self.master.winfo_screenheight()
@@ -57,17 +63,21 @@ class TranscriptionApp:
 
         self.transcription_in_progress = False
         self.transcription_thread = None  # Initialize transcription thread variable
-        self.stop_transcription_flag = False  # Flag to signal transcription thread to stop
+        # Flag to signal transcription thread to stop
+        self.stop_transcription_flag = False
         self.translation_active = False  # Flag to indicate if translation is active
         self.translator = None  # Initialize translator object
 
-        self.loading_label = ctk.CTkLabel(main_frame, text="", font=("Arial", 12, "bold"), fg_color="transparent")
+        self.loading_label = ctk.CTkLabel(main_frame, text="", font=(
+            "Arial", 12, "bold"), fg_color="transparent")
         self.loading_label.pack(pady=10)
 
-        self.pin_button = ctk.CTkButton(self.master, text='', image=self.unpinned_icon, command=self.toggle_pin, width=20, corner_radius=0, bg_color="transparent", fg_color="transparent")
+        self.pin_button = ctk.CTkButton(self.master, text='', image=self.unpinned_icon, command=self.toggle_pin,
+                                        width=20, corner_radius=0, bg_color="transparent", fg_color="transparent")
         self.pin_button.place(relx=1, rely=0, anchor="ne")
 
-        self.start_button = ctk.CTkButton(main_frame, text="Start Transcription", command=self.toggle_transcription)
+        self.start_button = ctk.CTkButton(
+            main_frame, text="Start Transcription", command=self.toggle_transcription)
         self.start_button.pack(pady=10)
 
     def create_microphone_selection(self, frame):
@@ -79,8 +89,10 @@ class TranscriptionApp:
 
         self.mic_var = ctk.StringVar()
         mic_options = sr.Microphone.list_microphone_names()
-        self.mic_dropdown = ctk.CTkComboBox(mic_frame, variable=self.mic_var, values=mic_options, state="readonly")
-        self.mic_dropdown.set(mic_options[0])  # Set default value mic selection
+        self.mic_dropdown = ctk.CTkComboBox(
+            mic_frame, variable=self.mic_var, values=mic_options, state="readonly")
+        # Set default value mic selection
+        self.mic_dropdown.set(mic_options[0])
         self.mic_dropdown.grid(row=0, column=1)
 
     def create_model_selection(self, frame):
@@ -92,8 +104,10 @@ class TranscriptionApp:
 
         self.model_var = ctk.StringVar()
         model_options = ['Tiny', 'Base', 'Small', 'Medium', 'Large']
-        self.model_dropdown = ctk.CTkComboBox(model_frame, variable=self.model_var, values=model_options, state="readonly")
-        self.model_dropdown.set(model_options[3])  # Set default value to "medium"
+        self.model_dropdown = ctk.CTkComboBox(
+            model_frame, variable=self.model_var, values=model_options, state="readonly")
+        # Set default value to "medium"
+        self.model_dropdown.set(model_options[3])
         self.model_dropdown.grid(row=0, column=1)
 
     def create_translation_options(self, frame):
@@ -101,10 +115,13 @@ class TranscriptionApp:
         translation_frame.pack(pady=10)
 
         self.translation_checkbox_var = ctk.BooleanVar()
-        self.translation_checkbox = ctk.CTkCheckBox(translation_frame, text="Translate to Language:", variable=self.translation_checkbox_var, command=self.toggle_translation)
-        self.translation_checkbox.grid(row=0, column=0, padx=10, pady=5, sticky="w")
+        self.translation_checkbox = ctk.CTkCheckBox(
+            translation_frame, text="Translate to Language:", variable=self.translation_checkbox_var, command=self.toggle_translation)
+        self.translation_checkbox.grid(
+            row=0, column=0, padx=10, pady=5, sticky="w")
 
-        self.translate_label = ctk.CTkLabel(translation_frame, text="Translate to Language:")
+        self.translate_label = ctk.CTkLabel(
+            translation_frame, text="Translate to Language:")
         self.translate_label.grid(row=1, column=0, padx=10, pady=5, sticky="w")
         self.translate_label.grid_remove()
         self.languages = {
@@ -113,10 +130,12 @@ class TranscriptionApp:
             "German": "de",
             "Dutch": "nl",
             "Japanese": "jap"
-            }
+        }
         self.translate_var = ctk.StringVar()
-        self.translate_dropdown = ctk.CTkComboBox(translation_frame, variable=self.translate_var, state="disabled")
-        self.translate_dropdown.grid(row=1, column=1, padx=10, pady=5, sticky="w")
+        self.translate_dropdown = ctk.CTkComboBox(
+            translation_frame, variable=self.translate_var, state="disabled")
+        self.translate_dropdown.grid(
+            row=1, column=1, padx=10, pady=5, sticky="w")
         self.translate_dropdown.grid_remove()
 
     def toggle_translation(self):
@@ -124,8 +143,10 @@ class TranscriptionApp:
         if self.translation_active:
             self.translate_label.grid()
             self.translate_dropdown.grid()
-            self.translate_dropdown.configure(values=list(self.languages.keys()), state="readonly")
-            self.translate_var.set(list(self.languages.keys())[0])  # Set default translation language to Spanish
+            self.translate_dropdown.configure(values=list(
+                self.languages.keys()), state="readonly")
+            # Set default translation language to Spanish
+            self.translate_var.set(list(self.languages.keys())[0])
         else:
             self.translate_label.grid_remove()
             self.translate_dropdown.grid_remove()
@@ -135,24 +156,28 @@ class TranscriptionApp:
 
     def toggle_transcription(self):
         if not self.transcription_in_progress:
-            self.master.iconbitmap('assets/images/appIcon_recording.ico') #set app icon to show recording emblem
+            # set app icon to show recording emblem
+            self.master.iconbitmap('assets/images/appIcon_recording.ico')
             self.start_button.configure(text="Stop Transcription")
             self.transcription_in_progress = True
             self.stop_transcription_flag = False  # Reset stop transcription flag
-            self.loading_label.configure(text="Loading Model...", fg_color="black", corner_radius=5)
+            self.loading_label.configure(
+                text="Loading Model...", fg_color="black", corner_radius=5)
             self.transcription_thread = Thread(target=self.start_transcription)
             self.transcription_thread.start()  # Start transcription thread
         else:
-            self.master.iconbitmap('assets/images/appIcon.ico') #set app icon to remove recording emblem
+            # set app icon to remove recording emblem
+            self.master.iconbitmap('assets/images/appIcon.ico')
             self.start_button.configure(text="Start Transcription")
             self.transcription_in_progress = False
             self.stop_transcription_flag = True  # Set stop transcription flag
-            self.loading_label.configure(text="Transcribing Stopped", fg_color="red", corner_radius=5)
+            self.loading_label.configure(
+                text="Transcribing Stopped", fg_color="red", corner_radius=5)
 
     def toggle_pin(self):
         if self.master.attributes('-topmost'):
             self.master.attributes('-topmost', False)
-            self.pin_button.configure(image=self.unpinned_icon )
+            self.pin_button.configure(image=self.unpinned_icon)
         else:
             self.master.attributes('-topmost', True)
             self.pin_button.configure(image=self.pinned_icon)
@@ -178,7 +203,8 @@ class TranscriptionApp:
         # Load / Download model
         if model != "large":
             model = model + ".en"
-        audio_model = whisper.load_model(model)
+        audio_model = WhisperModel(
+            model, device="auto", compute_type="int8")
 
         record_timeout = 2
         phrase_timeout = 3
@@ -187,7 +213,8 @@ class TranscriptionApp:
         print("Model loaded.\n")
 
         # Update the loading label to show "Transcribing"
-        self.loading_label.configure(text="Transcribing", fg_color="green", corner_radius=5)
+        self.loading_label.configure(
+            text="Transcribing", fg_color="green", corner_radius=5)
 
         with source:
             recorder.adjust_for_ambient_noise(source)
@@ -203,7 +230,8 @@ class TranscriptionApp:
 
         # Create a background thread that will pass us raw audio bytes.
         # We could do this manually but SpeechRecognizer provides a nice helper.
-        recorder.listen_in_background(source, record_callback, phrase_time_limit=record_timeout)
+        recorder.listen_in_background(
+            source, record_callback, phrase_time_limit=record_timeout)
 
         transcription = []  # Initialize transcription list
 
@@ -227,15 +255,23 @@ class TranscriptionApp:
                     # Convert in-ram buffer to something the model can use directly without needing a temp file.
                     # Convert data from 16 bit wide integers to floating point with a width of 32 bits.
                     # Clamp the audio stream frequency to a PCM wavelength compatible default of 32768hz max.
-                    audio_np = np.frombuffer(audio_data, dtype=np.int16).astype(np.float32) / 32768.0
+                    audio_np = np.frombuffer(
+                        audio_data, dtype=np.int16).astype(np.float32) / 32768.0
 
                     # Read the transcription.
-                    result = audio_model.transcribe(audio_np, fp16=torch.cuda.is_available())
-                    text = result['text'].strip()
+                    # result = audio_model.transcribe(audio_np)
+                    segments, _ = audio_model.transcribe(
+                        audio_np, beam_size=5, language="en")
+
+                    # The transcription will actually run here.
+
+                    text = segments[0]
+                    print(text)
 
                     # If translation is active, translate the text
                     if self.translation_active:
-                        translation_lang = self.languages[self.translate_var.get()]
+                        translation_lang = self.languages[self.translate_var.get(
+                        )]
                         self.load_translator_model('en', translation_lang)
                         text = self.translator.translate([text])[0]
 
@@ -243,7 +279,8 @@ class TranscriptionApp:
                     # Otherwise, append the new transcription.
                     if phrase_complete:
                         transcription.append(text)
-                        print(text, end=" ")  # Add a space after every complete phrase
+                        # Add a space after every complete phrase
+                        print(text, end=" ")
                     else:
                         if transcription:  # Check if transcription list is not empty
                             transcription[-1] = text
@@ -251,7 +288,8 @@ class TranscriptionApp:
                             transcription.append(text)
 
                     # Simulate typing the transcription wherever the cursor is
-                    pyautogui.typewrite(text + " ")  # Add a space after every complete phrase
+                    # Add a space after every complete phrase
+                    pyautogui.typewrite(text + " ")
 
                     # Infinite loops are bad for processors, must sleep.
                     sleep(0.25)
@@ -265,20 +303,24 @@ class TranscriptionApp:
         for line in transcription:
             print(line)
 
-        self.start_button.configure(text="Start Transcription")  # Reset button text
+        self.start_button.configure(
+            text="Start Transcription")  # Reset button text
         self.transcription_in_progress = False
 
     def on_close(self):
         self.stop_transcription_flag = True  # Set stop transcription flag
         self.master.destroy()  # Destroy tkinter window
 
+
 def main():
     ctk.set_appearance_mode("System")  # Modes: system (default), light, dark
-    ctk.set_default_color_theme("dark-blue")  # Themes: blue (default), dark-blue, green
+    # Themes: blue (default), dark-blue, green
+    ctk.set_default_color_theme("dark-blue")
 
     root = ctk.CTk()
     app = TranscriptionApp(root)
     root.mainloop()
+
 
 if __name__ == "__main__":
     main()
