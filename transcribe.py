@@ -269,7 +269,6 @@ class TranscriptionApp:
                         audio_data, dtype=np.int16).astype(np.float32) / 32768.0
 
                     # Read the transcription.
-                    # result = audio_model.transcribe(audio_np)
                     segments, _ = audio_model.transcribe(
                         audio_np, beam_size=5, language="en")
 
