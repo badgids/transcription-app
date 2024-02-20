@@ -8,7 +8,6 @@ import torch
 import pyautogui
 import customtkinter as ctk
 import tkinter as tk
-import platform
 from tkinter import ttk
 from tkinter import filedialog
 from datetime import datetime, timedelta
@@ -206,7 +205,7 @@ class TranscriptionApp:
             model = model + ".en"
 
         # Check system type to load model appropriately
-        if platform.system != 'Darwin':
+        if torch.cuda.is_available:
             audio_model = WhisperModel(
                 model,
                 device="cuda",
