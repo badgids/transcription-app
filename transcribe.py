@@ -8,6 +8,7 @@ import torch
 import pyautogui
 import customtkinter as ctk
 import tkinter as tk
+import platform
 from tkinter import ttk
 from tkinter import filedialog
 from datetime import datetime, timedelta
@@ -203,8 +204,18 @@ class TranscriptionApp:
         # Load / Download model
         if model != "large":
             model = model + ".en"
-        audio_model = WhisperModel(
-            model, device="auto", compute_type="int8")
+
+        # Check system type to load model appropriately
+        if platform.system != 'Darwin':
+            audio_model = WhisperModel(
+                model,
+                device="cuda",
+                compute_type="int8_float16")
+        else:
+            audio_model = WhisperModel(
+                model,
+                device="cpu",
+                compute_type="int8")
 
         record_timeout = 2
         phrase_timeout = 3
@@ -264,9 +275,9 @@ class TranscriptionApp:
                         audio_np, beam_size=5, language="en")
 
                     # The transcription will actually run here.
-
-                    text = segments[0]
-                    print(text)
+                    # Convert segments to a list then read the first segments text output
+                    segment = list(segments)
+                    text = segment[0].text
 
                     # If translation is active, translate the text
                     if self.translation_active:
