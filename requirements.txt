@@ -10,3 +10,4 @@ transformers
 sentencepiece
 sacremoses
 customtkinter
+faster_whisper
