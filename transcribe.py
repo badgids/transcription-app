@@ -289,7 +289,8 @@ class TranscriptionApp:
                     if phrase_complete:
                         transcription.append(text)
                         # Add a space after every complete phrase
-                        print(text, end=" ")
+                        # print(text, end=" ")
+                        print(text + " ")
                     else:
                         if transcription:  # Check if transcription list is not empty
                             transcription[-1] = text
